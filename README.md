@@ -36,7 +36,7 @@ Funkcja `init` alokuje bufor cykliczny dla N porcji danych typu `int64_t` oraz
 inicjuje semafory. Zwraca:
 
   * `0`, gdy sukces;
-  * `-1`, gdy N > 2^{31} - 1;
+  * `-1`, gdy N > 2<sup>31</sup> - 1;
   * `-2`, gdy N = 0;
   * `-3`, gdy alokacja pamięci się nie powiodła.
 
