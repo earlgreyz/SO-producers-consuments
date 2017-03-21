@@ -1,4 +1,4 @@
-TESTS = semaphore_test advanced_semaphore_test
+TESTS = semaphore_test advanced_semaphore_test init_test
 CC = gcc
 CFLAGS = -Wall -O2
 
@@ -24,6 +24,12 @@ advanced_semaphore_test.o: tests/advanced_semaphore_test.c tests/err.h
 
 advanced_semaphore_test: advanced_semaphore_test.o err.o dijkstra_semaphore.o
 	$(CC) -o $@ $^ -lpthread -pthread
+
+init_test.o: tests/init_test.c
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+init_test: init_test.o producer_consumer.o
+	$(CC) -o $@ $^
 
 .PHONY: all clean
 

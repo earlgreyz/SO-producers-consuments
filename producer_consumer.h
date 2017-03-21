@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 int init(size_t N);
+void deinit(void);
 void producer(void);
 void consumer(void);
 
