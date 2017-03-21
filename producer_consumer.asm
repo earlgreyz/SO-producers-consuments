@@ -5,55 +5,78 @@ global consumer
 
 extern malloc, free
 
-INIT_SUCCESS      equ 0
-INIT_OVERFLOW_ERR equ -1
-INIT_EMPTY_ERR    equ -2
-INIT_ALLOC_ERR    equ -3
+; Return codes
+SUCCESS             equ 0
+INIT_OVERFLOW_ERR   equ -1
+INIT_EMPTY_ERR      equ -2
+INIT_ALLOC_ERR      equ -3
 
-SIZE_T_MAX        equ 2147483647
+; Constants
+SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
+
+; Returns given `error_code`
+; @param error_code Error code to return
+; @returns `error_code`
+%macro return 1
+  mov rax, %1
+  ret
+%endmacro
 
 section .bss
   buffer: resb 8
 
 section .text
-  ; Init function errors
+  ; @returns `SUCCESS`
+  success:
+    return SUCCESS
+
+  ; @returns `INIT_OVERFLOW_ERR`
   init_overflow_err:
-    mov rax, INIT_OVERFLOW_ERR
-    ret
+    return INIT_OVERFLOW_ERR
 
+  ; @returns `INIT_EMPTY_ERR`
   init_empty_err:
-    mov rax, INIT_EMPTY_ERR
-    ret
+    return INIT_EMPTY_ERR
 
+  ; @returns `INIT_ALLOC_ERR`
   init_alloc_err:
-    mov rax, INIT_ALLOC_ERR
-    ret
+    return INIT_ALLOC_ERR
 
-  ; Init
+  ; `int init(size_t n)`
+  ; Allocates array of `int64_t`
+  ; @param n array length
+  ; @returns error_code:
+  ; * 0, when success
+  ; * -1, when `N` > 2^31 - 1;
+  ; * -2, when `N` = 0;
+  ; * -3, when memory allocation fails
   init:
+    ; Check for overload
     cmp rdi, SIZE_T_MAX
     jg init_overflow_err
 
+    ; Check for n = 0
     test rdi, rdi
     jz init_empty_err
 
+    ; Allocate memory
     shl rdi, 3
     call malloc
 
+    ; Check for memoery allocation failure
     test rax, rax
     jz init_alloc_err
 
+    ; Save allocated memory pointer to buffer
     mov [buffer], rax
+    jmp success
 
-  init_success:
-    mov rax, INIT_SUCCESS
-    ret
-
-  ; Finish
+  ; `void deinit(void)`
+  ; Frees array allocated with `init`
   deinit:
     mov rdi, [buffer]
     call free
-    ret
+    jmp success
 
   ; Producer
   producer:
