@@ -1,10 +1,16 @@
 #include "../producer_consumer.h"
+#include "../dijkstra_semaphore.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
 
-void produce(void) {}
-void consume(void) {}
+int produce(int64_t * P) {
+  return 0;
+}
+
+int consume(int64_t P) {
+  return 0;
+}
 
 int main() {
   int init_code;
