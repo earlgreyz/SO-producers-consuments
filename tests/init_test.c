@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 
+void produce(void) {}
+void consume(void) {}
+
 int main() {
   int init_code;
 

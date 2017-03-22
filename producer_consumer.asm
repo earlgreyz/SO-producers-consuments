@@ -4,6 +4,8 @@ global producer
 global consumer
 
 extern malloc, free
+extern proberen, verhogen
+extern produce, consume
 
 ; Return codes
 SUCCESS             equ 0
@@ -23,7 +25,9 @@ SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
 %endmacro
 
 section .bss
-  buffer: resb 8
+  buffer: resq 1
+  producers_sem: resd 1
+  consumers_sem: resd 1
 
 section .text
   ; @returns `SUCCESS`
@@ -43,7 +47,7 @@ section .text
     return INIT_ALLOC_ERR
 
   ; `int init(size_t n)`
-  ; Allocates array of `int64_t`
+  ; Allocates array of `int64_t` and semaphores.
   ; @param n array length
   ; @returns error_code:
   ; * 0, when success
@@ -60,19 +64,26 @@ section .text
     jz init_empty_err
 
     ; Allocate memory
+    push rdi
     shl rdi, 3
     call malloc
+    pop rdi
 
-    ; Check for memoery allocation failure
+    ; Check for memory allocation failure
     test rax, rax
     jz init_alloc_err
 
     ; Save allocated memory pointer to buffer
     mov [buffer], rax
+
+    ; Initialize semaphores
+    mov [producers_sem], rdi
+    mov word [consumers_sem], 0
+
     jmp success
 
   ; `void deinit(void)`
-  ; Frees array allocated with `init`
+  ; Frees array and semaphores allocated with `init`
   deinit:
     mov rdi, [buffer]
     call free
