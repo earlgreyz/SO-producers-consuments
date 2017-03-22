@@ -17,11 +17,24 @@ INIT_ALLOC_ERR      equ -3
 SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
 
 ; Returns given `error_code`
-; @param error_code Error code to return
-; @returns `error_code`
+; @param error_code error code to return
 %macro return 1
   mov rax, %1
   ret
+%endmacro
+
+; Performs `value = (value + 1) % base`
+; @param value
+; @param base
+%macro inc_mod 2
+  mov rax, %1
+  inc rax
+  xor edx, edx
+
+  mov rsi, %2
+  div rsi
+
+  mov %1, rdx
 %endmacro
 
 %macro print_portion 1
@@ -83,7 +96,7 @@ section .text
 
     ; Allocate memory
     push rdi
-    shl rdi, 3
+    sal rdi, 3
     call malloc
     pop rdi
 
@@ -109,8 +122,9 @@ section .text
 
   ; Producer
   producer:
-    ; Push rdi for later cleanup
+    ; Push register for later cleanup
     push rdi
+    push rsi
 
     ; Current buffer index
     mov qword [producer_index], 0
@@ -140,23 +154,18 @@ section .text
     mov qword rcx, [portion]
 
     ; Increase index by one modulo buffer_size
-    mov rax, [producer_index]
-    inc rax
-    xor edx, edx
-    mov rsi, [buffer_size]
-    div rsi
-    mov [producer_index], rdx
+    inc_mod [producer_index], [buffer_size]
 
-    ; Cleanup
     jmp producer_loop
 
+  ; Producer cleanup
   producer_end:
+    pop rsi
     pop rdi
     ret
 
   ; Consumer
   consumer:
-
     ; Loop forever
     jmp consumer
     ret
