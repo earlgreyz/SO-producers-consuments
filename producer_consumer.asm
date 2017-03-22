@@ -14,7 +14,7 @@ INIT_EMPTY_ERR      equ -2
 INIT_ALLOC_ERR      equ -3
 
 ; Constants
-SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
+SIZE_T_MAX          equ 2147483647 ; (2^31) -1
 
 ; Returns given `error_code`
 ; @param error_code error code to return
@@ -37,8 +37,16 @@ SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
   mov %1, rdx
 %endmacro
 
-section .data
-  format: db "%ld", 0x0a, 0
+; Calculates memory ptr to buffer at given index and stores the result in rax
+; @param index
+%macro buffer_index 1
+  mov rax, [buffer]
+  ; rcx = index * sizeof(int64_t)
+  mov rcx, %1
+  sal rcx, 3
+  ; rax = pointer to `buffer[consumer_index]`
+  add rax, rcx
+%endmacro
 
 section .bss
   buffer: resq 1
@@ -137,13 +145,9 @@ section .text
     mov edi, producers_sem
     call proberen
 
-    ; rax = pointer to `buffer[0]`
-    mov rax, [buffer]
-    ; rcx = index * sizeof(int64_t)
-    mov rcx, [producer_index]
-    sal rcx, 3
-    ; rax = pointer to `buffer[producer_index]`
-    add rax, rcx
+    ; Calculate address of buffer[producer_index], store it in rax
+    buffer_index [producer_index]
+
     ; Insert portion into the buffer
     mov qword rcx, [producer_portion]
     mov [rax], rcx
@@ -175,16 +179,11 @@ section .text
     mov edi, consumers_sem
     call proberen
 
-    ; Get portion at consumer_index
-    mov rax, [buffer]
-    ; rcx = index * sizeof(int64_t)
-    mov rcx, [consumer_index]
-    sal rcx, 3
-    ; rax = pointer to `buffer[consumer_index]`
-    add rax, rcx
-    ; Insert portion into the buffer
-    mov qword rcx, [rax]
+    ; Calculate address of buffer[consumer_index], store it in rax
+    buffer_index [consumer_index]
 
+    ; Get value of buffer[consumer_index]
+    mov qword rcx, [rax]
     mov [consumer_portion], rcx
 
     ; Increase producers semaphore
@@ -200,9 +199,7 @@ section .text
 
     ; Check if the portion is the last one
     test rax, rax
-    jz consumer_end
-
-    jmp consumer_loop
+    jnz consumer_loop
 
   consumer_end:
     pop rsi
