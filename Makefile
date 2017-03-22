@@ -1,4 +1,4 @@
-TESTS = semaphore_test advanced_semaphore_test init_test producer_test
+TESTS = semaphore_test advanced_semaphore_test init_test producer_consumer_simple_test
 CC = gcc
 CFLAGS = -Wall -O2
 
@@ -31,10 +31,10 @@ init_test.o: tests/init_test.c
 init_test: init_test.o producer_consumer.o dijkstra_semaphore.o
 	$(CC) -o $@ $^
 
-producer_test.o: tests/producer_test.c
+producer_consumer_simple_test.o: tests/producer_consumer_simple_test.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-producer_test: producer_test.o producer_consumer.o dijkstra_semaphore.o
+producer_consumer_simple_test: producer_consumer_simple_test.o producer_consumer.o dijkstra_semaphore.o
 	$(CC) -o $@ $^
 
 .PHONY: all clean

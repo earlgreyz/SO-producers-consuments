@@ -3,7 +3,7 @@ global deinit
 global producer
 global consumer
 
-extern malloc, free, printf
+extern malloc, free
 extern proberen, verhogen
 extern produce, consume
 
@@ -37,12 +37,6 @@ SIZE_T_MAX          equ 2147483647 ; (2 << 31) -1
   mov %1, rdx
 %endmacro
 
-%macro print_portion 1
-  lea rdi, [rel format]
-  mov rsi, %1
-  call printf
-%endmacro
-
 section .data
   format: db "%ld", 0x0a, 0
 
@@ -53,8 +47,10 @@ section .bss
   producers_sem: resd 1
   consumers_sem: resd 1
 
-  portion: resq 1
+  producer_portion: resq 1
   producer_index: resq 1
+
+  consumer_portion: resq 1
   consumer_index: resq 1
 
 section .text
@@ -109,7 +105,7 @@ section .text
 
     ; Initialize semaphores
     mov [producers_sem], rdi
-    mov dword [consumers_sem], 0
+    mov qword [consumers_sem], 0
 
     jmp success
 
@@ -120,7 +116,6 @@ section .text
     call free
     jmp success
 
-  ; Producer
   producer:
     ; Push register for later cleanup
     push rdi
@@ -129,10 +124,9 @@ section .text
     ; Current buffer index
     mov qword [producer_index], 0
 
-  ; Producer loop
   producer_loop:
     ; Produce portion and store it in portion variable
-    mov qword rdi, portion
+    mov qword rdi, producer_portion
     call produce
 
     ; Check if no portion has been produced and we should finish
@@ -145,27 +139,72 @@ section .text
 
     ; rax = pointer to `buffer[0]`
     mov rax, [buffer]
-    ; rcx = index * 3
-    mov rcx, rdx
+    ; rcx = index * sizeof(int64_t)
+    mov rcx, [producer_index]
     sal rcx, 3
-    ; rcx = pointer to `buffer[index]``
-    lea rcx, [rcx + rax]
-    ; Insert portion into the buffer at position `index`
-    mov qword rcx, [portion]
+    ; rax = pointer to `buffer[producer_index]`
+    add rax, rcx
+    ; Insert portion into the buffer
+    mov qword rcx, [producer_portion]
+    mov [rax], rcx
+
+    ; Increase consumers semaphore
+    mov edi, consumers_sem
+    call verhogen
 
     ; Increase index by one modulo buffer_size
     inc_mod [producer_index], [buffer_size]
 
     jmp producer_loop
 
-  ; Producer cleanup
   producer_end:
     pop rsi
     pop rdi
     ret
 
-  ; Consumer
   consumer:
-    ; Loop forever
-    jmp consumer
+    ; Push register for later cleanup
+    push rdi
+    push rsi
+
+    ; Current buffer index
+    mov qword [consumer_index], 0
+
+  consumer_loop:
+    ; Try to aquire consumers semaphore
+    mov edi, consumers_sem
+    call proberen
+
+    ; Get portion at consumer_index
+    mov rax, [buffer]
+    ; rcx = index * sizeof(int64_t)
+    mov rcx, [consumer_index]
+    sal rcx, 3
+    ; rax = pointer to `buffer[consumer_index]`
+    add rax, rcx
+    ; Insert portion into the buffer
+    mov qword rcx, [rax]
+
+    mov [consumer_portion], rcx
+
+    ; Increase producers semaphore
+    mov edi, producers_sem
+    call verhogen
+
+    ; Increase index by one modulo buffer_size
+    inc_mod [consumer_index], [buffer_size]
+
+    ; Consume portion
+    mov rdi, [consumer_portion]
+    call consume
+
+    ; Check if the portion is the last one
+    test rax, rax
+    jz consumer_end
+
+    jmp consumer_loop
+
+  consumer_end:
+    pop rsi
+    pop rdi
     ret
