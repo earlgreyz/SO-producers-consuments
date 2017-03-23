@@ -16,10 +16,16 @@ INIT_ALLOC_ERR      equ -3
 ; Constants
 SIZE_T_MAX          equ 2147483647; (2^31) -1
 
-; Returns given `error_code`
+; Aligns stack at the begining of the function
+%macro align 0
+  sub rsp, 8
+%endmacro
+
+; Returns given `error_code`, and aligns the stack
 ; @param error_code error code to return
 %macro return 1
   mov rax, %1
+  add rsp, 8
   ret
 %endmacro
 
@@ -87,6 +93,7 @@ section .text
   ; * -2, when `N` = 0;
   ; * -3, when memory allocation fails
   init:
+    align
     ; Save buffer size
     mov [buffer_size], rdi
 
@@ -120,11 +127,13 @@ section .text
   ; `void deinit(void)`
   ; Frees array allocated with `init`
   deinit:
+    align
     mov rdi, [buffer]
     call free
     jmp success
 
   producer:
+    align
     ; Push register for later cleanup
     push rdi
     push rsi
@@ -164,9 +173,10 @@ section .text
   producer_end:
     pop rsi
     pop rdi
-    ret
+    return 0
 
   consumer:
+    align
     ; Push register for later cleanup
     push rdi
     push rsi
@@ -204,4 +214,4 @@ section .text
   consumer_end:
     pop rsi
     pop rdi
-    ret
+    return 0
