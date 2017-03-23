@@ -14,7 +14,7 @@ INIT_EMPTY_ERR      equ -2
 INIT_ALLOC_ERR      equ -3
 
 ; Constants
-SIZE_T_MAX          equ 2147483647 ; (2^31) -1
+SIZE_T_MAX          equ 2147483647; (2^31) -1
 
 ; Returns given `error_code`
 ; @param error_code error code to return
@@ -92,7 +92,7 @@ section .text
 
     ; Check for overload
     cmp rdi, SIZE_T_MAX
-    jg init_overflow_err
+    ja init_overflow_err
 
     ; Check for n = 0
     test rdi, rdi

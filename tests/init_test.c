@@ -1,4 +1,3 @@
-#include "../producer_consumer.h"
 #include "../dijkstra_semaphore.h"
 #include <stdlib.h>
 #include <assert.h>
@@ -12,6 +11,12 @@ int consume(int64_t P) {
   return 0;
 }
 
+int init(uint64_t size);
+void producer(void);
+void consumer(void);
+void deinit(void);
+
+
 int main() {
   int init_code;
 
@@ -22,7 +27,8 @@ int main() {
   printf("PASS\n");
 
   printf("* Should return -1... ");
-  // I don't know how to test it as C doesn't allow size_t to exceed 2 << 31 - 1
+  init_code = init(2147483648);
+  assert(init_code == -1);
   printf("PASS\n");
 
   printf("* Should return -2... ");
@@ -32,7 +38,8 @@ int main() {
 
   // Assuming you don't have a lot of memory
   printf("* Should return -3... ");
-  init_code = init((2<<31) - 1);
+  uint64_t size = (2u << 30) - 1;
+  init_code = init(size);
   assert(init_code == -3);
   printf("PASS\n");
 }
